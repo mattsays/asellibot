@@ -5,7 +5,7 @@ import threading
 from datetime import date, datetime
 from dateutil import rrule
 from os import environ as env
-
+import re
 # Constants
 
 # The BigBang
@@ -16,6 +16,13 @@ START_DATE = datetime.strptime("10/10/2022", "%d/%m/%Y").date()
 # Michele : Cucina (2)
 FIRST_INDICES = {'Filippo': 0, 'Mattia': 1, 'Michele': 2}
 JOB_TYPES = ["Bagno 🚽", "Pavimenti 🧹", "Piano cottura e Bidoni 🔥/🗑️"]
+users = {
+	"mattsays": ["Mattia"],
+	"filippoGalliCr": ["Filippo"],
+	"Michelepave": ["Michele"]
+}
+
+
 
 # Text commands
 
@@ -28,6 +35,14 @@ TEXTS = {
 run = True
 
 # Weekly calculated jobs 
+
+def getChatId():
+	chat_id_file = open("chat_id.txt", 'r')
+	lines = chat_id_file.readlines()
+	for line in lines:
+		[name, id] = line.split(":")
+		id = id.strip() # pulizia da spazi e caratteri anomali
+		users[name].append(id)
 
 def getWeekIndex():
 	weeks = rrule.rrule(rrule.WEEKLY, dtstart=START_DATE, until=date.today())
@@ -52,17 +67,7 @@ def getNextWeekJob(name):
 
 # Telegram related part
 
-users = {
-	"mattsays": ["Mattia"],
-	"filippoGalliCr": ["Filippo"],
-	"Michelepave": ["Michele"]
-}
-
 bot = telebot.TeleBot(env["YOUWASH_TOKEN"], parse_mode=False)
-
-def add_id(message):
-	if len(users[message.chat.username]) == 1:
-			users[message.chat.username].append(message.chat.id)
 
 def commands_markup():
 	markup = types.ReplyKeyboardMarkup(row_width=2)
@@ -136,6 +141,7 @@ def schedUpdate():
 		schedule.run_pending()
 		time.sleep(1)
 
+getChatId()
 schedThread = threading.Thread(target=schedUpdate)
 schedThread.start()
 
