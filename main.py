@@ -6,7 +6,9 @@ from datetime import date, datetime
 from dateutil import rrule
 from os import environ as env
 import re
+
 # Constants
+BOT_TIMEOUT = 30
 
 # The BigBang
 START_DATE = datetime.strptime("10/10/2022", "%d/%m/%Y").date()
@@ -34,14 +36,14 @@ TEXTS = {
 
 run = True
 
-# Weekly calculated jobs 
+# Weekly calculated jobs
 
-def getChatId():
+def initializeChatIds():
 	chat_id_file = open("chat_id.txt", 'r')
 	lines = chat_id_file.readlines()
 	for line in lines:
 		[name, id] = line.split(":")
-		id = id.strip() # pulizia da spazi e caratteri anomali
+		id = id.strip() # removing spaces and abnormal chars
 		users[name].append(id)
 
 def getWeekIndex():
@@ -73,7 +75,6 @@ def commands_markup():
 	markup = types.ReplyKeyboardMarkup(row_width=2)
 	for value in TEXTS.values():
 		markup.add(types.KeyboardButton(value))
-	
 	return markup
 
 def send_msg(message, text, markup = None):
@@ -113,15 +114,12 @@ def send_job(message):
 @bot.message_handler(commands=['mansione'])
 def send_job(message):
 	if(message.chat.username in users.keys()):
-		if len(users[message.chat.username]) == 1:
-			users[message.chat.username].append(message.chat.id)
 		send_msg(message, f"Ecco il tuo turno bestia:\n{getWeekJob(users[message.chat.username][0])}\nOra vedi di muoverti che non fai mai un cazzo.")
 
 @bot.message_handler(regexp=TEXTS['JOBS_TEXT'])
 def send_jobs_week(message):
 	if(message.chat.username not in users.keys()):
 		return
-	add_id(message)
 	send_msg(message, "Ecco i cazzi degli altri\n")
 	jobs = getWeekJobs()
 	jobs_str = ''
@@ -141,9 +139,16 @@ def schedUpdate():
 		schedule.run_pending()
 		time.sleep(1)
 
-getChatId()
+initializeChatIds()
 schedThread = threading.Thread(target=schedUpdate)
 schedThread.start()
 
 print("Bot started!")
-bot.infinity_polling()
+try:
+	bot.polling(none_stop=True, timeout=BOT_TIMEOUT)
+except:
+	pass
+finally:
+	run = False
+	schedThread.join()
+	print("Bye.")
