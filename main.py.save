@@ -91,6 +91,8 @@ def cleaning_msg():
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
 	if(message.chat.username in users.keys()):
+		add_id(message)
+
 		send_msg(message, 
 		   "Ciao benvenuto! \n " +
 		   "Questo bot e stato pensato per aiutare i coinquilini che sono ritardati. \n" + 
@@ -137,23 +139,16 @@ def schedUpdate():
 		schedule.run_pending()
 		time.sleep(1)
 
-def main():
-	global run
-	initializeChatIds()
-	schedThread = threading.Thread(target=schedUpdate)
-	schedThread.start()
+initializeChatIds()
+schedThread = threading.Thread(target=schedUpdate)
+schedThread.start()
 
-	print("Bot started!")
-	while True:
-		try:
-			bot.polling(none_stop=True, timeout=BOT_TIMEOUT, restart_on_change=True)
-		except:
-			print(f"Server down - errore: \n {sys.exc_info()[0]}")
-		finally:
-			run = False
-			schedThread.join()
-			print("Bye.")
-			exit(0)
-
-if __name__ == "__main__":
-        main()
+print("Bot started!")
+try:
+	bot.polling(none_stop=True, timeout=BOT_TIMEOUT)
+except:
+	pass
+finally:
+	run = False
+	schedThread.join()
+	print("Bye.")
