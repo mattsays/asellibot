@@ -78,7 +78,7 @@ def commands_markup():
 	return markup
 
 def send_msg(message, text, markup = None):
-	bot.send_message(users[message.chat.username][1], text, reply_markup=markup)
+	bot.send_message(message.chat.id, text, reply_markup=markup)
 
 def cleaning_msg():
 	jobs = getWeekJobs()
@@ -86,7 +86,6 @@ def cleaning_msg():
 		if(len(user_data) != 2):
 			continue
 		bot.send_message(user_data[1], f"Bungiorno la tua mansione della settimana è \"{jobs[user_data[0]]}\"")
-
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -113,7 +112,8 @@ def send_job(message):
 @bot.message_handler(regexp=TEXTS['JOBS_TEXT'])
 def send_jobs_week(message):
 	if(message.chat.username not in users.keys()):
-		return
+	               	send_msg(message, f"Muori..")
+	               	return
 	send_msg(message, "Ecco i cazzi degli altri\n")
 	jobs = getWeekJobs()
 	jobs_str = ''
@@ -142,7 +142,7 @@ def main():
 	print("Bot started!")
 	while True:
 		try:
-			bot.polling(none_stop=True, timeout=BOT_TIMEOUT, restart_on_change=True)
+			bot.polling(none_stop=True, timeout=BOT_TIMEOUT, restart_on_change=False)
 		except:
 			print(f"Server down - errore: \n {sys.exc_info()[0]}")
 			print("...restarting...")
