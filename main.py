@@ -69,7 +69,7 @@ def getNextWeekJob(name):
 
 # Telegram related part
 
-bot = telebot.TeleBot(env["YOUWASH_TOKEN"], parse_mode=False)
+bot = telebot.TeleBot(env["YOUWASH_TOKEN"], parse_mode=False) # type: ignore
 
 def commands_markup():
 	markup = types.ReplyKeyboardMarkup(row_width=2)
@@ -95,25 +95,21 @@ def send_welcome(message):
 		   "Ciao benvenuto! \n " +
 		   "Questo bot e stato pensato per aiutare i coinquilini che sono ritardati. \n" + 
 		   "Gli ideatori del bot @mattsays e @filippoGalliCr sono persone stupide, quindi in caso di errori o bug, attacati al cazzo.\n" +
-		   "Bene, da ora in poi ogni lunedi ti mandero il tuo cazzo di turno pezzo di merda. Dopo aver stabilito le regole di base ecco le mie features:", 
+		   "Bene, da ora in poi ogni lunedi ti manderò il tuo cazzo di turno pezzo di merda. Dopo aver stabilito le regole di base ecco le mie features:", 
 		   markup=commands_markup()
 		)
 
 	else:
-		send_msg(message, "Sei una merda umana, non sei della Aselli Crew!")
+		send_msg(message, "Sei una merda umana, non sei della Aselli Crew! VATTENE!")
+
 
 @bot.message_handler(regexp=TEXTS['JOB_TEXT'])
 def send_job(message):
 	if(message.chat.username in users.keys()):
-		send_job(message)
+		send_msg(message, f"Ecco il tuo turno bestia:\n{getWeekJob(users[message.chat.username][0])}\nOra vedi di muoverti che non fai mai un cazzo.")
 	else:
 		bot.send_message(message.chat.id, "Sei una merda umana, vai via bastardo!")
-
-@bot.message_handler(commands=['mansione'])
-def send_job(message):
-	if(message.chat.username in users.keys()):
-		send_msg(message, f"Ecco il tuo turno bestia:\n{getWeekJob(users[message.chat.username][0])}\nOra vedi di muoverti che non fai mai un cazzo.")
-
+		
 @bot.message_handler(regexp=TEXTS['JOBS_TEXT'])
 def send_jobs_week(message):
 	if(message.chat.username not in users.keys()):
@@ -149,6 +145,7 @@ def main():
 			bot.polling(none_stop=True, timeout=BOT_TIMEOUT, restart_on_change=True)
 		except:
 			print(f"Server down - errore: \n {sys.exc_info()[0]}")
+			print("...restarting...")
 		finally:
 			run = False
 			schedThread.join()
