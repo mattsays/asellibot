@@ -1,0 +1,34 @@
+{
+    "token": "the_power_token",
+    "webhook":
+    {
+        "host": "domain.com",
+        "port": 80,
+        "ssl_cert": "my.cert",
+        "ssl_key": "priv.key"
+    },
+    
+    "bigbang": "14/04/1581",
+    "jobs":
+    [
+        "Eat pizza ", 
+        "Empty trashcan", 
+        "Go to bed"
+    ],
+    "cmds":
+    {
+        "job": "bruh",
+		"jobs": "bruh",
+        "in_house": "bruh",
+		"help": "bruh"
+    },
+    "members":
+    {
+        "ciruzz":
+        {
+            "bigbang_index": 1,
+            "display_name": "NapoletanoMan",
+            "id": "0000000"
+        }
+    }
+}
