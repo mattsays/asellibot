@@ -3,6 +3,7 @@ from scapy.all import srp,Ether,ARP,conf
 import requests
 import schedule
 import time
+import os
 
 BASE_IP = "192.168.1.0/24"
 INTERFACE = "wlan0"
@@ -38,7 +39,7 @@ def get_inhouse_people_json():
 
     return json.dumps({"in_house": people})
 
-json_data = populate_data_dict("./config.json")
+json_data = populate_data_dict(os.environ["CONFIG"])
 
 def send_inhouse_update():
     global json_data

@@ -1,0 +1,7 @@
+services:
+  asellibot_inhouse:
+    image: "asellibot_inhouse"
+    restart: always
+    network_mode: host
+    volumes:
+      - ".:/configs"
