@@ -4,7 +4,7 @@
     {
         "host": "domain.com",
         "port": 80,
-        "ssl_cert": "my.cert",
+	"ssl_cert": "my.cert",
         "ssl_key": "priv.key"
     },
     

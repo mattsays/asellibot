@@ -1,0 +1,8 @@
+services:
+  aselli_bot:
+    image: "aselli_bot"
+    restart: always
+    volumes:
+      - ".:/configs"
+    ports:
+      - "8443:8443"
