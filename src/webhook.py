@@ -56,6 +56,6 @@ class Webhook:
             self.app,
             host='0.0.0.0',
             port=self.json["port"],
-            ssl_certfile=os.environ["SSL_CERT"],
-            ssl_keyfile=os.environ["SSL_KEY"]
+            ssl_certfile=self.json["ssl_cert"],
+            ssl_keyfile=self.json["ssl_key"]
         )

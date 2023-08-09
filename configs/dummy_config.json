@@ -4,8 +4,8 @@
     {
         "host": "domain.com",
         "port": 80,
-	"ssl_cert": "my.cert",
-        "ssl_key": "priv.key"
+	"ssl_cert": "/configs/cert/pub.cert",
+        "ssl_key": "/configs/cert/priv.key"
     },
     
     "bigbang": "14/04/1581",

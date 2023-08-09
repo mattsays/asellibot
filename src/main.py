@@ -7,7 +7,7 @@ def populate_data_dict(path: str):
         return json.load(f)
 
 
-JSON_DATA = populate_data_dict(os.environ.get("CONFIG"))
+JSON_DATA = populate_data_dict(os.environ.get("CONFIG", "./config.json"))
 
 bot = Bot(JSON_DATA)
 bot.start()
