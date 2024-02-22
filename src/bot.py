@@ -4,6 +4,7 @@ from jobs import Jobs
 import schedule
 import time
 import threading
+import random 
 
 class Bot:
 
@@ -19,7 +20,7 @@ class Bot:
         self.tgbot.register_message_handler(callback=self.send_jobs_week, regexp=self.json["cmds"]["jobs"])
         self.tgbot.register_message_handler(callback=self.send_help, regexp=self.json["cmds"]["help"])
         self.tgbot.register_message_handler(callback=self.send_inhouse_people, regexp=self.json["cmds"]["in_house"])
-
+        self.tgbot.register_message_handler(callback=self.turn_of_getting_food, regexp=self.json["cmds"]["turn_of_getting_food"])
 
     def schedule_thread(self):
         schedule.every().monday.at("08:30").do(self.send_jobs_to_all) # Time is in UTC format
@@ -95,3 +96,11 @@ class Bot:
 
     def send_help(self, message):
         self.send_welcome(message)
+
+    def turn_of_getting_food(self, message): 
+        # Function to decide who is going to get food
+        possible_person = []
+        for person in self.inhouse:
+            possible_person.append(self.json["members"][person]['display_name'])
+        random.shuffle(possible_person)
+        self.send_msg(message, f"Stasera scende a prendere il cibo: {possible_person[0]}")        
