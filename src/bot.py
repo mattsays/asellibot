@@ -40,8 +40,9 @@ class Bot:
             self.send_jobs_to_all
         )  # Time is in UTC format
         schedule.every().minute.do(
-            self.update_connected_people()
+            self.update_connected_people
         )
+        self.update_connected_people()
         while True:
             schedule.run_pending()
             time.sleep(1)
@@ -141,6 +142,9 @@ class Bot:
 
     def send_inhouse_people(self, message):
         if message.chat.username in self.json["members"].keys():
+            if len(self.inhouse) == 0:
+                self.send_msg(message, 'Pezzo di merda la casa è vuota.')
+                return
             str_mex = "Ecco chi c'è in casa:\n"
             for person in self.inhouse:
                 str_mex += f"{self.json['members'][person]['display_name']}\n"
@@ -155,10 +159,19 @@ class Bot:
 
     def turn_of_getting_food(self, message):
         # Function to decide who is going to get food
-        possible_person = []
-        for person in self.inhouse:
-            possible_person.append(self.json["members"][person]["display_name"])
-        random.shuffle(possible_person)
-        self.send_msg(
-            message, f"Stasera scende a prendere il cibo: {possible_person[0]}"
-        )
+        if message.chat.username in self.json["members"].keys():
+            if len(self.inhouse) == 0:
+                    self.send_msg(message, 'Pezzo di merda la casa è vuota.')
+                    return
+            
+            possible_person = []
+            for person in self.inhouse:
+                possible_person.append(self.json["members"][person]["display_name"])
+            random.shuffle(possible_person)
+            self.send_msg(
+                message, f"Stasera scende a prendere il cibo: {possible_person[0]}"
+            )
+        else:
+            self.send_msg(
+                message, "Sei una merda umana, vai via bastardo!", markup=False
+            )
