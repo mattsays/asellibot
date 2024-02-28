@@ -1,5 +1,6 @@
 from webhook import Webhook
 from telebot import *
+from telebot import formatting
 from jobs import Jobs
 import schedule
 import time
@@ -10,7 +11,8 @@ from scapy.all import srp,Ether,ARP,conf
 class Bot:
     def __init__(self, json):
         self.json = json
-
+        self.inhouse = []
+        self.logger = logging.getLogger(__name__)
         self.tgbot = telebot.TeleBot(json["token"])  # type: ignore
         self.webhook = Webhook(self, json["token"], json["webhook"])
         self.jobs = Jobs(json)
@@ -34,6 +36,8 @@ class Bot:
             callback=self.turn_of_getting_food,
             regexp=self.json["cmds"]["turn_of_getting_food"],
         )
+        
+        self.started = True
 
     def schedule_thread(self):
         schedule.every().monday.at("08:30").do(
@@ -43,13 +47,14 @@ class Bot:
             self.update_connected_people
         )
         self.update_connected_people()
-        while True:
+        while self.started:
             schedule.run_pending()
             time.sleep(1)
 
     def start(self):
         self.schedThread = threading.Thread(target=self.schedule_thread)
         self.schedThread.start()
+        self.tgbot.delete_webhook()
         self.webhook.start()
     
     def update_connected_people(self):
@@ -79,34 +84,28 @@ class Bot:
         for value in self.json["cmds"].values():
             markup.add(types.KeyboardButton(value))
         return markup
-
+    
     def send_msg(self, message, text, markup=True):
         self.tgbot.send_message(
-            message.chat.id,
-            text,
+            chat_id=message.chat.id,
+            text=text,
+            parse_mode='MarkdownV2',
             reply_markup=self.commands_markup() if markup else None,
         )
-
-    def send_msg_to_user(self, username, text, markup=True):
-        self.tgbot.send_message(
-            self.json["members"][username]["id"],
-            text,
-            reply_markup=self.commands_markup() if markup else None,
-        )
-
+        
     def send_welcome(self, message):
         if message.chat.username in self.json["members"].keys():
-            self.send_msg_to_user(
+            self.send_msg(
                 message,
-                "Ciao benvenuto! \n "
-                + "Questo bot e stato pensato per aiutare i coinquilini che sono ritardati. \n"
-                + "Gli ideatori del bot @mattsays e @filippoGalliCr sono persone stupide, quindi in caso di errori o bug, attacati al cazzo.\n"
-                + "Bene, da ora in poi ogni lunedi ti manderò il tuo cazzo di turno pezzo di merda. Dopo aver stabilito le regole di base ecco le mie features:",
+                "Ciao benvenuto\! \n "
+                + "Questo bot e stato pensato per aiutare i coinquilini che sono ritardati\. \n"
+                + "Gli ideatori del bot @mattsays e @filippoGalliCr sono persone stupide, quindi in caso di errori o bug, attacati al cazzo\.\n"
+                + "Bene, da ora in poi ogni lunedi ti manderò il tuo cazzo di turno pezzo di merda\. Dopo aver stabilito le regole di base ecco le mie features:",
             )
         else:
             self.send_msg(
                 message,
-                "Sei una merda umana, non sei della Aselli Crew! VATTENE!",
+                "Sei una merda umana, non sei della Aselli Crew\! VATTENE\!",
                 markup=True,
             )
 
@@ -114,28 +113,28 @@ class Bot:
         if message.chat.username in self.json["members"].keys():
             self.send_msg(
                 message,
-                f"Ecco il tuo turno bestia:\n{self.jobs.getWeekJob(message.chat.username)}\nOra vedi di muoverti che non fai mai un cazzo.",
+                f"Ecco il tuo turno bestia:\n{self.jobs.getWeekJob(message.chat.username)}\nOra vedi di muoverti che non fai mai un cazzo\.",
             )
         else:
-            self.send_msg(message, "Sei una merda umana, vai via bastardo!")
+            self.send_msg(message, "Sei una merda umana, vai via bastardo\!")
 
     def send_jobs_week(self, message):
         if message.chat.username not in self.json["members"].keys():
-            self.send_msg(message, "Muori..")
+            self.send_msg(message, "Muori\.\.")
             return
         jobs = self.jobs.getWeekJobs()
-        jobs_str = "Ecco i cazzi degli altri \n"
+        jobs_str = "Ecco i cazzi degli altri: \n\n"
         for job in jobs.items():
-            jobs_str += f"{job[0]}: {job[1]}\n"
-        jobs_str += "Ora tornate a lavorare che cazzeggi sempre."
+            jobs_str += f"*{job[0]}*: {job[1]}\n" 
+        jobs_str += "\nOra torna a lavorare che cazzeggi sempre\."
         self.send_msg(message, jobs_str)
 
     def send_jobs_to_all(self):
         jobs = self.jobs.getWeekJobs()
         for username in self.json["members"].keys():
             job = jobs[self.json["members"][username]["display_name"]]
-            self.send_msg_to_user(
-                username,
+            self.send_msg(
+                self.json["members"][username]['id'],
                 f'Bungiorno la tua mansione della settimana è "{job}"',
                 markup=False,
             )
@@ -143,15 +142,15 @@ class Bot:
     def send_inhouse_people(self, message):
         if message.chat.username in self.json["members"].keys():
             if len(self.inhouse) == 0:
-                self.send_msg(message, 'Pezzo di merda la casa è vuota.')
+                self.send_msg(message, 'Pezzo di merda la casa è vuota\.')
                 return
             str_mex = "Ecco chi c'è in casa:\n"
             for person in self.inhouse:
-                str_mex += f"{self.json['members'][person]['display_name']}\n"
+                str_mex += f"*{self.json['members'][person]['display_name']}*\n"
             self.send_msg(message, str_mex)
         else:
             self.send_msg(
-                message, "Sei una merda umana, vai via bastardo!", markup=False
+                message, "Sei una merda umana, vai via bastardo\!", markup=False
             )
 
     def send_help(self, message):
@@ -161,7 +160,7 @@ class Bot:
         # Function to decide who is going to get food
         if message.chat.username in self.json["members"].keys():
             if len(self.inhouse) == 0:
-                    self.send_msg(message, 'Pezzo di merda la casa è vuota.')
+                    self.send_msg(message, 'Pezzo di merda la casa è vuota\.')
                     return
             
             possible_person = []
@@ -169,9 +168,9 @@ class Bot:
                 possible_person.append(self.json["members"][person]["display_name"])
             random.shuffle(possible_person)
             self.send_msg(
-                message, f"Stasera scende a prendere il cibo: {possible_person[0]}"
+                message, f"Stasera scende a prendere il cibo: *{possible_person[0]}*"
             )
         else:
             self.send_msg(
-                message, "Sei una merda umana, vai via bastardo!", markup=False
+                message, "Schifo, FAI SCHIFO\!", markup=False
             )

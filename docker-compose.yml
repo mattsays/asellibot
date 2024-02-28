@@ -1,14 +1,13 @@
 services:
   asellibot:
     image: "aselli_bot"
+    network_mode: host
     build:
       context: .
     restart: always
     init: true
     volumes:
       - "./configs:/asellibot/configs"
-    ports:
-      - "88:88"
   cloudflare-ddns:
     image: favonia/cloudflare-ddns:latest
     network_mode: host

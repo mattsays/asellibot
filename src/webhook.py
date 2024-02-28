@@ -34,7 +34,7 @@ class Webhook:
         url_path = f"/{self.token}/"
         # Set webhook
         self.bot.tgbot.set_webhook(url=base_url + url_path)
-
+ 
         uvicorn.run(
             self.app,
             host="0.0.0.0",
