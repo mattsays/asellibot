@@ -2,6 +2,7 @@ from bot import Bot
 import json
 import os
 
+
 def populate_data_dict(path: str):
     with open(path) as f:
         return json.load(f)

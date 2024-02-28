@@ -5,22 +5,23 @@ import bot
 import time
 import os
 
-class Webhook:
 
+class Webhook:
     def __init__(self, bot, token, json):
         self.app = fastapi.FastAPI(docs=None, redoc_url=None)
         self.bot = bot
         self.token = token
         self.json = json
 
-        self.app.add_api_route(path=f'/{token}/', 
-                               endpoint=self.process_webhook, 
-                               methods=["POST"])
-        
-        self.app.add_api_route(path=f'/{token}/in_house/', 
-                               endpoint=self.process_update_people_list, 
-                               methods=["POST"])
+        self.app.add_api_route(
+            path=f"/{token}/", endpoint=self.process_webhook, methods=["POST"]
+        )
 
+        self.app.add_api_route(
+            path=f"/{token}/in_house/",
+            endpoint=self.process_update_people_list,
+            methods=["POST"],
+        )
 
     def process_webhook(self, update: dict):
         """
@@ -42,20 +43,17 @@ class Webhook:
             return
 
     def start(self):
-        
         self.bot.tgbot.remove_webhook()
 
         base_url = f"https://{ self.json['host'] }:{ self.json['port'] }"
         url_path = f"/{self.token}/"
         # Set webhook
-        self.bot.tgbot.set_webhook(
-            url=base_url + url_path
-        )
+        self.bot.tgbot.set_webhook(url=base_url + url_path)
 
         uvicorn.run(
             self.app,
-            host='0.0.0.0',
+            host="0.0.0.0",
             port=self.json["port"],
             ssl_certfile=self.json["ssl_cert"],
-            ssl_keyfile=self.json["ssl_key"]
+            ssl_keyfile=self.json["ssl_key"],
         )
