@@ -3,7 +3,7 @@
     "webhook":
     {
         "host": "domain.com",
-        "port": 80,
+        "port": 88,
 	"ssl_cert": "/configs/cert/pub.cert",
         "ssl_key": "/configs/cert/priv.key"
     },
