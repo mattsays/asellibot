@@ -17,12 +17,6 @@ class Webhook:
             path=f"/{token}/", endpoint=self.process_webhook, methods=["POST"]
         )
 
-        self.app.add_api_route(
-            path=f"/{token}/in_house/",
-            endpoint=self.process_update_people_list,
-            methods=["POST"],
-        )
-
     def process_webhook(self, update: dict):
         """
         Process webhook calls
@@ -30,15 +24,6 @@ class Webhook:
         if update:
             update = telebot.types.Update.de_json(update)
             self.bot.tgbot.process_new_updates([update])
-        else:
-            return
-
-    def process_update_people_list(self, people: dict):
-        """
-        Handles inhouse counter updates
-        """
-        if people:
-            self.bot.in_house_update(people)
         else:
             return
 

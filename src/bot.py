@@ -5,7 +5,7 @@ import schedule
 import time
 import threading
 import random
-
+from scapy.all import srp,Ether,ARP,conf 
 
 class Bot:
     def __init__(self, json):
@@ -39,6 +39,9 @@ class Bot:
         schedule.every().monday.at("08:30").do(
             self.send_jobs_to_all
         )  # Time is in UTC format
+        schedule.every().minute.do(
+            self.update_connected_people()
+        )
         while True:
             schedule.run_pending()
             time.sleep(1)
@@ -47,6 +50,25 @@ class Bot:
         self.schedThread = threading.Thread(target=self.schedule_thread)
         self.schedThread.start()
         self.webhook.start()
+    
+    def update_connected_people(self):
+        devices = []
+        conf.verb = 0 
+        ans, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff")/ARP(pdst = '192.168.1.0/24'), 
+		     timeout = 2, 
+		     iface = 'eth0',
+		     inter = 0.1)
+        for _,rcv in ans: 
+            devices.append(rcv.sprintf(r"%Ether.src%"))
+
+        people : List[str] = []
+        for username, data in self.json["members"].items():
+            user_addrs = data['mac_addresses']
+            in_house = any(device in user_addrs for device in devices)
+            if in_house:
+                people.append(username)
+
+        self.inhouse = people
 
     def commands_markup(self):
         cmds_size = len(self.json["cmds"].values())
@@ -73,7 +95,7 @@ class Bot:
 
     def send_welcome(self, message):
         if message.chat.username in self.json["members"].keys():
-            self.send_msg(
+            self.send_msg_to_user(
                 message,
                 "Ciao benvenuto! \n "
                 + "Questo bot e stato pensato per aiutare i coinquilini che sono ritardati. \n"
@@ -127,9 +149,6 @@ class Bot:
             self.send_msg(
                 message, "Sei una merda umana, vai via bastardo!", markup=False
             )
-
-    def in_house_update(self, people):
-        self.inhouse = people["in_house"]
 
     def send_help(self, message):
         self.send_welcome(message)
