@@ -54,7 +54,6 @@ class Bot:
     def start(self):
         self.schedThread = threading.Thread(target=self.schedule_thread)
         self.schedThread.start()
-        self.tgbot.delete_webhook()
         self.webhook.start()
     
     def update_connected_people(self):
@@ -132,11 +131,12 @@ class Bot:
     def send_jobs_to_all(self):
         jobs = self.jobs.getWeekJobs()
         for username in self.json["members"].keys():
-            job = jobs[self.json["members"][username]["display_name"]]
-            self.send_msg(
-                self.json["members"][username]['id'],
-                f'Bungiorno la tua mansione della settimana è "{job}"',
-                markup=False,
+            job = jobs[self.json["members"][username]["display_name"]]            
+            self.tgbot.send_message(
+                chat_id=self.json["members"][username]['id'],
+                text=f'Bungiorno la tua mansione della settimana è "{job}"',
+                parse_mode='MarkdownV2',
+                reply_markup=None,
             )
 
     def send_inhouse_people(self, message):
