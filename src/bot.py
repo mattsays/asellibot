@@ -1,3 +1,4 @@
+from pydantic import BaseModel
 from webhook import Webhook
 from telebot import *
 from telebot import formatting
@@ -8,10 +9,23 @@ import threading
 import random
 from scapy.all import srp,Ether,ARP,conf 
 
+class InHousePerson(BaseModel):
+    username: str
+    connected_devices: List[str]
+    devices: List[str]
+    last_update_time: int
+
 class Bot:
     def __init__(self, json):
         self.json = json
-        self.inhouse = []
+        self.inhouse: List[InHousePerson] = []
+        self.update_interval = self.json['inhouse_update_interval']
+        for username, data in self.json["members"].items():
+            self.inhouse.append(InHousePerson(username=username, 
+                                       connected_devices=[], 
+                                       last_update_time=0,
+                                       devices=data['mac_addresses']))
+        
         self.logger = logging.getLogger(__name__)
         self.tgbot = telebot.TeleBot(json["token"])  # type: ignore
         self.webhook = Webhook(self, json["token"], json["webhook"])
@@ -30,12 +44,13 @@ class Bot:
             callback=self.send_help, regexp=self.json["cmds"]["help"]
         )
         self.tgbot.register_message_handler(
+            callback=self.turn_of_getting_food, regexp=self.json["cmds"]["turn_of_getting_food"],
+        )
+        
+        self.tgbot.register_message_handler(
             callback=self.send_inhouse_people, regexp=self.json["cmds"]["in_house"]
         )
-        self.tgbot.register_message_handler(
-            callback=self.turn_of_getting_food,
-            regexp=self.json["cmds"]["turn_of_getting_food"],
-        )
+        
         
         self.started = True
 
@@ -43,11 +58,9 @@ class Bot:
         schedule.every().monday.at("08:30").do(
             self.send_jobs_to_all
         )  # Time is in UTC format
-        schedule.every().minute.do(
-            self.update_connected_people
-        )
-        self.update_connected_people()
+        
         while self.started:
+            self.update_connected_people()
             schedule.run_pending()
             time.sleep(1)
 
@@ -57,23 +70,23 @@ class Bot:
         self.webhook.start()
     
     def update_connected_people(self):
-        devices = []
+        curr_devices = []
         conf.verb = 0 
         ans, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff")/ARP(pdst = '192.168.1.0/24'), 
 		     timeout = 2, 
 		     iface = 'eth0',
 		     inter = 0.1)
         for _,rcv in ans: 
-            devices.append(rcv.sprintf(r"%Ether.src%"))
+            curr_devices.append(rcv.sprintf(r"%Ether.src%"))
 
-        people : List[str] = []
-        for username, data in self.json["members"].items():
-            user_addrs = data['mac_addresses']
-            in_house = any(device in user_addrs for device in devices)
-            if in_house:
-                people.append(username)
+        for person in self.inhouse:
+            if time.time() - person.last_update_time >= self.update_interval or \
+                len(person.connected_devices) == 0:
+                    person.connected_devices = [device for device in curr_devices if device in person.devices]
+                    person.last_update_time = time.time()
 
-        self.inhouse = people
+    def get_connected_people(self):
+        return [person.username for person in self.inhouse if len(person.connected_devices) > 0]
 
     def commands_markup(self):
         cmds_size = len(self.json["cmds"].values())
@@ -141,11 +154,11 @@ class Bot:
 
     def send_inhouse_people(self, message):
         if message.chat.username in self.json["members"].keys():
-            if len(self.inhouse) == 0:
+            if len(self.get_connected_people()) == 0:
                 self.send_msg(message, 'Pezzo di merda la casa è vuota\.')
                 return
             str_mex = "Ecco chi c'è in casa:\n"
-            for person in self.inhouse:
+            for person in self.get_connected_people():
                 str_mex += f"*{self.json['members'][person]['display_name']}*\n"
             self.send_msg(message, str_mex)
         else:
@@ -159,12 +172,13 @@ class Bot:
     def turn_of_getting_food(self, message):
         # Function to decide who is going to get food
         if message.chat.username in self.json["members"].keys():
-            if len(self.inhouse) == 0:
+            connected_people = self.get_connected_people()
+            if len(connected_people) == 0:
                     self.send_msg(message, 'Pezzo di merda la casa è vuota\.')
                     return
             
             possible_person = []
-            for person in self.inhouse:
+            for person in connected_people:
                 possible_person.append(self.json["members"][person]["display_name"])
             random.shuffle(possible_person)
             self.send_msg(

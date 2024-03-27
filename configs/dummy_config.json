@@ -4,10 +4,10 @@
     {
         "host": "domain.com",
         "port": 88,
-	"ssl_cert": "/configs/cert/pub.cert",
+	    "ssl_cert": "/configs/cert/pub.cert",
         "ssl_key": "/configs/cert/priv.key"
     },
-    
+    "inhouse_update_interval": 120,
     "bigbang": "14/04/1581",
     "jobs":
     [
