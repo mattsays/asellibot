@@ -16,6 +16,15 @@ class InHousePerson(BaseModel):
     last_update_time: int
 
 class Bot:
+    started: bool
+    json: dict
+    inhouse: List[InHousePerson]
+    update_interval: int
+    tgbot: TeleBot
+    webhook: Webhook
+    logger: logging.Logger
+    jobs: Jobs
+    
     def __init__(self, json):
         self.json = json
         self.inhouse: List[InHousePerson] = []
@@ -51,7 +60,6 @@ class Bot:
             callback=self.send_inhouse_people, regexp=self.json["cmds"]["in_house"]
         )
         
-        
         self.started = True
 
     def schedule_thread(self):
@@ -70,6 +78,17 @@ class Bot:
         self.webhook.start()
     
     def update_connected_people(self):
+        needs_update = False
+        
+        for person in self.inhouse:
+            if time.time() - person.last_update_time >= self.update_interval or \
+                len(person.connected_devices) == 0:
+                    needs_update = True
+                    break
+        
+        if not needs_update:
+            return
+        
         curr_devices = []
         conf.verb = 0 
         ans, _ = srp(Ether(dst="ff:ff:ff:ff:ff:ff")/ARP(pdst = '192.168.1.0/24'), 

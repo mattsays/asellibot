@@ -1,9 +1,9 @@
 import fastapi
 import uvicorn
 import telebot
-import bot
 import time
 import os
+from contextlib import asynccontextmanager
 
 
 class Webhook:
@@ -27,6 +27,13 @@ class Webhook:
         else:
             return
 
+    @asynccontextmanager
+    async def lifespan(self, app: fastapi.FastAPI):
+        yield
+        print('Stopping..')
+        self.bot.started = False
+        self.bot.schedThread.join()
+
     def start(self):
         self.bot.tgbot.remove_webhook()
 
@@ -35,7 +42,9 @@ class Webhook:
         url_path = f"/{self.token}/"
         # Set webhook
         self.bot.tgbot.set_webhook(url=base_url + url_path)
- 
+
+        self.app.router.lifespan_context = self.lifespan
+        
         uvicorn.run(
             self.app,
             host="0.0.0.0",
