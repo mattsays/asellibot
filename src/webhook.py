@@ -30,7 +30,8 @@ class Webhook:
     def start(self):
         self.bot.tgbot.remove_webhook()
 
-        base_url = f"https://{ self.json['host'] }:{ self.json['port'] }"
+        base_url = f"https://{ self.json['host']}"
+                
         url_path = f"/{self.token}/"
         # Set webhook
         self.bot.tgbot.set_webhook(url=base_url + url_path)
@@ -39,6 +40,6 @@ class Webhook:
             self.app,
             host="0.0.0.0",
             port=self.json["port"],
-            ssl_certfile=self.json["ssl_cert"],
-            ssl_keyfile=self.json["ssl_key"],
+            ssl_certfile=self.json["ssl_cert"] if self.json["ssl_cert"] != '' else None,
+            ssl_keyfile=self.json["ssl_key"]  if self.json["ssl_key"] != '' else None,
         )
