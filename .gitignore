@@ -3,5 +3,4 @@ __pycache__
 .venv
 
 config.json
-configs/cert/*
-configs/cloudflare/*
+config.json.bak

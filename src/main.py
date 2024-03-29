@@ -11,4 +11,4 @@ def populate_data_dict(path: str):
 JSON_DATA = populate_data_dict(os.environ.get("CONFIG", "/asellibot/configs/config.json"))
 
 bot = Bot(JSON_DATA)
-bot.start()
+bot.start(os.environ.get('DEV', 'false'))

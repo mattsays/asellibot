@@ -8,12 +8,18 @@ import time
 import threading
 import random
 from scapy.all import srp,Ether,ARP,conf 
+import os
+import json
 
 class InHousePerson(BaseModel):
     username: str
     connected_devices: List[str]
     devices: List[str]
     last_update_time: int
+
+class FoodTurn(BaseModel):
+    username: str
+    pickUp: bool
 
 class Bot:
     started: bool
@@ -28,17 +34,21 @@ class Bot:
     def __init__(self, json):
         self.json = json
         self.inhouse: List[InHousePerson] = []
+        self.foodPickup: List[FoodTurn] = []
         self.update_interval = self.json['inhouse_update_interval']
         for username, data in self.json["members"].items():
             self.inhouse.append(InHousePerson(username=username, 
                                        connected_devices=[], 
                                        last_update_time=0,
                                        devices=data['mac_addresses']))
+            self.foodPickup.append(FoodTurn(username=username,
+                                            pickUp=data['food_pickup']))
         
         self.logger = logging.getLogger(__name__)
         self.tgbot = telebot.TeleBot(json["token"])  # type: ignore
         self.webhook = Webhook(self, json["token"], json["webhook"])
         self.jobs = Jobs(json)
+        
         # Handlers
         self.tgbot.register_message_handler(
             callback=self.send_welcome, commands=["start"]
@@ -72,10 +82,16 @@ class Bot:
             schedule.run_pending()
             time.sleep(1)
 
-    def start(self):
+    def start(self, dev_mode: str = 'false'):
         self.schedThread = threading.Thread(target=self.schedule_thread)
         self.schedThread.start()
-        self.webhook.start()
+        
+        if dev_mode == 'true':
+            print('Starting bot..')
+            self.tgbot.delete_webhook()
+            self.tgbot.infinity_polling()
+        else:  
+            self.webhook.start()
     
     def update_connected_people(self):
         needs_update = False
@@ -187,7 +203,28 @@ class Bot:
 
     def send_help(self, message):
         self.send_welcome(message)
+    
+    def updateJSON_foodPickup(self, possible_person: List, reset: bool = False):
+        # reset to True every member after a cycle was done
+        if reset == False:            
+            # set to false the one already go down
+            self.json["members"][possible_person[0]]['food_pickup'] = False
+            
+        else: 
+            for username, data in self.json["members"].items():
+                if username in possible_person:
+                    data['food_pickup'] = True
 
+        # write the changes on the json
+        with open(os.environ.get("CONFIG", "/asellibot/configs/config.json"), 'w') as file:
+            json.dump(self.json, file, indent=4)
+        
+        # Update self.foodPickup
+        for username, data in self.json["members"].items():
+            for person in self.foodPickup:
+                if(person.username == username):
+                    person.pickUp = data["food_pickup"]
+        
     def turn_of_getting_food(self, message):
         # Function to decide who is going to get food
         if message.chat.username in self.json["members"].keys():
@@ -197,11 +234,24 @@ class Bot:
                     return
             
             possible_person = []
-            for person in connected_people:
-                possible_person.append(self.json["members"][person]["display_name"])
+            err = True
+
+            for person in self.foodPickup:
+                if(person.pickUp == True and person.username in connected_people):
+                    possible_person.append(person.username)
+                    err = False
+
+            if err == True:
+                self.updateJSON_foodPickup(connected_people, True)
+                possible_person = connected_people
+
+
             random.shuffle(possible_person)
+
+            self.updateJSON_foodPickup(possible_person)
+
             self.send_msg(
-                message, f"Stasera scende a prendere il cibo: *{possible_person[0]}*"
+                message, f"Stasera scende a prendere il cibo: *{self.json['members'][possible_person[0]]['display_name']}*"
             )
         else:
             self.send_msg(
