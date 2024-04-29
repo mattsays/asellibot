@@ -35,15 +35,7 @@ class Bot:
         self.json = json
         self.inhouse: List[InHousePerson] = []
         self.foodPickup: List[FoodTurn] = []
-        self.update_interval = self.json['inhouse_update_interval']
-        for username, data in self.json["members"].items():
-            self.inhouse.append(InHousePerson(username=username, 
-                                       connected_devices=[], 
-                                       last_update_time=0,
-                                       devices=data['mac_addresses']))
-            self.foodPickup.append(FoodTurn(username=username,
-                                            pickUp=data['food_pickup']))
-        
+        self.update_interval = self.json['inhouse_update_interval']        
         self.logger = logging.getLogger(__name__)
         self.tgbot = telebot.TeleBot(json["token"])  # type: ignore
         self.webhook = Webhook(self, json["token"], json["webhook"])
@@ -71,6 +63,19 @@ class Bot:
         )
         
         self.started = True
+
+    def update_state(self):
+        with open(os.environ.get("CONFIG", "/asellibot/configs/config.json")) as f:
+            self.json = json.load(f)
+        
+        for username, data in self.json["members"].items():
+            self.inhouse.append(InHousePerson(username=username, 
+                                       connected_devices=[], 
+                                       last_update_time=0,
+                                       devices=data['mac_addresses']))
+            self.foodPickup.append(FoodTurn(username=username,
+                                            pickUp=data['food_pickup']))
+
 
     def schedule_thread(self):
         schedule.every().monday.at("08:30").do(
@@ -233,6 +238,8 @@ class Bot:
                     self.send_msg(message, 'Pezzo di merda la casa è vuota\.')
                     return
             
+            self.update_state()
+            
             possible_person = []
             err = True
 
@@ -241,6 +248,7 @@ class Bot:
                     possible_person.append(person.username)
                     err = False
 
+            # if all people are false
             if err == True:
                 self.updateJSON_foodPickup(connected_people, True)
                 possible_person = connected_people
